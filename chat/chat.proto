@@ -1,11 +1,23 @@
 syntax = "proto3";
+package chat;
+service Chat {
+    
+    //Server takes Requests and Sends Confirmation
+    rpc ConnRequest(Request) returns (Confirm) {}
 
-package chat
+    //Server/Client take in input returns a stream of Text
+    rpc Broadcast(stream Text) returns (stream Text) {}
+}
 
-service ChatApp {
-	rpc ContChat(stream Text) returns (stream Text) {}
+message Request {
+    string Username = 1;
+    string Password = 2;
+}
+
+message Confirm {
+    bool Ok = 1;
 }
 
 message Text {
-	string txt = 1;
+	string Txt = 1;
 }

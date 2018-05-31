@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
+	"strings"
 
 	"google.golang.org/grpc"
 
@@ -13,10 +15,10 @@ import (
 	pb "grpcgittest/proto"
 )
 
-func listenToClient(sendQ chan pb.Message, reader *bufio.Reader, name string) {
+func listenToClient(sendQ chan pb.Message, reader *bufio.Reader, name string, groupnum int32) {
 	for {
 		msg, _ := reader.ReadString('\n')
-		sendQ <- pb.Message{Sender: name, Text: msg}
+		sendQ <- pb.Message{Sender: name, Text: msg, Group: groupnum}
 	}
 }
 
@@ -50,7 +52,7 @@ func Connect(address string) error {
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Print("Enter your name: ")
 	clientName, err := reader.ReadString('\n')
-
+	clientName = strings.TrimSpace(clientName)
 	if err != nil {
 		return err
 	}
@@ -58,13 +60,39 @@ func Connect(address string) error {
 	//Send initial message with Sender and Register=TRUE
 	stream.Send(&pb.Message{Sender: clientName, Register: true})
 
+	//Getgroupmessage
+	groupmessage, err := stream.Recv()
+	if err != nil {
+		return err
+	}
+	fmt.Printf("%s> %s", groupmessage.Sender, groupmessage.Text)
+
+	//Send group num as Group int32
+	groupnum, err := reader.ReadString('\n')
+	groupnum = strings.TrimSpace(groupnum)
+	gnum, _ := strconv.Atoi(groupnum)
+	groupid := int32(gnum)
+
+	//Send groupnum and Server registers member to groupnum
+	stream.Send(&pb.Message{Sender: clientName, Group: groupid})
+
+	//Recieve confirmation to group
+	mess, err := stream.Recv()
+	if err != nil {
+		return err
+	}
+
+	//Print Group Confirmation
+	fmt.Printf("%s> %s | Group %d", mess.Sender, mess.Text, mess.Group)
+	groupid = mess.Group //Updated GroupID
+
 	//Make buffered mailbox recieve message from server
 	mailBox := make(chan pb.Message, 100)
 	go receiveMessages(stream, mailBox)
 
 	//Make send queue buffered message
 	sendQ := make(chan pb.Message, 100)
-	go listenToClient(sendQ, reader, clientName)
+	go listenToClient(sendQ, reader, clientName, groupid)
 
 	//Forever
 	for {
@@ -76,7 +104,7 @@ func Connect(address string) error {
 
 		//If mailbox has something, print.
 		case received := <-mailBox:
-			fmt.Printf("%s> %s", received.Sender, received.Text)
+			fmt.Printf("Group %d | %s  > %s", received.Group, received.Sender, received.Text)
 		}
 	}
 }

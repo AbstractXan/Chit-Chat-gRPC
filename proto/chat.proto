@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package proto;
+
+
+// Types
+message Message{
+    string sender = 1;
+    string text = 2;
+    bool register = 3;
+}
+
+// Services
+service Chat{
+    rpc TransferMessage(stream Message) returns (stream Message) {}
+}

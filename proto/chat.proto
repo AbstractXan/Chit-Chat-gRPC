@@ -1,17 +1,35 @@
 syntax = "proto3";
 
 package proto;
+import "google/protobuf/empty.proto";
 
 
 // Types
+message Login{
+    string username = 1;
+    string password = 2;
+    int32 mode = 3; 
+    //1 for request 
+    //2 for deny 
+    //3 for already online 
+    //4 for confirm
+}
+
 message Message{
     string sender = 1;
     string text = 2;
     bool register = 3;
     int32 group = 4;
+    string groupname = 5;
 }
 
 // Services
 service Chat{
+    rpc LoginCred(Login) returns (Login) {}
     rpc TransferMessage(stream Message) returns (stream Message) {}
+    rpc LogoutCred(Logout) returns (google.protobuf.Empty){}
+}
+
+message Logout{
+    string username = 1;
 }

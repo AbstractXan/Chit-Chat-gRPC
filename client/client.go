@@ -17,16 +17,29 @@ import (
 )
 
 func listenToClient(sendQ chan pb.Message, reader *bufio.Reader, name string, groupnum int32) {
+	defer close(sendQ)
 	for {
 		msg, _ := reader.ReadString('\n')
 		sendQ <- pb.Message{Sender: name, Text: msg, Group: groupnum}
+
+		if strings.Contains(msg, "quit") {
+			fmt.Println("Closing Client Sender.")
+		}
+
 	}
 }
 
 func receiveMessages(stream pb.Chat_TransferMessageClient, mailbox chan pb.Message) {
+	defer close(mailbox)
 	for {
 		msg, _ := stream.Recv()
 		mailbox <- *msg
+
+		if msg.GetSender() == "server" && strings.Contains(msg.GetText(), "quit") {
+			fmt.Println("Closing Client Reciever.")
+			return
+		}
+
 	}
 }
 
@@ -59,7 +72,7 @@ func Connect(address string) error {
 	}
 
 	//Get Login Thingy
-	LoginStats, err := client.LoginCred(context.Background(), &pb.Login{Username: clientName, Password: clientPass, Mode: 1, Macaddress: getMacAddr()})
+	LoginStats, err := client.LoginCred(context.Background(), &pb.Login{Username: clientName, Password: clientPass, Mode: 1})
 	if err != nil {
 		return err
 	}
@@ -134,25 +147,26 @@ func Connect(address string) error {
 	sendQ := make(chan pb.Message, 100)
 	go listenToClient(sendQ, reader, clientName, groupid)
 
-	defer client.LogoutCred(context.Background(), &pb.Logout{Username: clientName})
 	//Forever
 	for {
 		select {
 
 		//If send channel is active, send to server
 		case toSend := <-sendQ:
-			if toSend.GetText() == "quit" {
-				return nil
-			}
-
 			stream.Send(&toSend)
 
 		//If mailbox has something, print.
 		case received := <-mailBox:
+			if received.GetSender() == "server" && strings.Contains(received.GetText(), "quit") {
+				fmt.Println("Exiting server.")
+				client.LogoutCred(context.Background(), &pb.Logout{Username: clientName})
+				return nil
+			}
 			fmt.Printf("Group %d | %s  > %s", received.Group, received.Sender, received.Text)
 		}
 	}
 
+	return nil
 }
 
 func main() {

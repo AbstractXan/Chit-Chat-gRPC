@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/golang/protobuf/ptypes/empty"
@@ -19,8 +20,6 @@ import (
 var usersLock = &sync.Mutex{}
 var usersMap = make(map[string]chan pb.Message, 100)
 
-//Stores Mac Address
-var usersMAC = make(map[string]string, 100)
 var groupLock = &sync.Mutex{}
 var groups []group
 
@@ -33,16 +32,6 @@ type group struct {
 // UsersDB has username and password
 var UsersDB = make(map[string]string)
 
-// Log : Keeps track of chat
-type Log struct {
-	Texts []Text
-}
-
-// Text : Storing text types
-type Text struct {
-	Sender  string
-	Message string
-}
 type chatServer struct {
 }
 
@@ -139,14 +128,15 @@ func broadcast(sender string, msg pb.Message) {
 
 //When messages come from Client stream
 func listenToClient(stream pb.Chat_TransferMessageServer, messages chan<- pb.Message) {
+	defer close(messages)
 	for {
 		msg, err := stream.Recv()
 		if err == io.EOF {
 			//
 		}
 		if err != nil {
-			fmt.Println(err)
-			return
+			//
+			break
 		}
 		messages <- *msg
 	}
@@ -216,7 +206,11 @@ func (s *chatServer) TransferMessage(stream pb.Chat_TransferMessageServer) error
 	for {
 		select {
 		case messageFromClient := <-clientMessages:
-			broadcast(clientName, messageFromClient)
+			if strings.Contains(messageFromClient.GetText(), "quit") {
+				stream.Send(&pb.Message{Sender: "server", Text: "quit"})
+			} else {
+				broadcast(clientName, messageFromClient)
+			}
 		case messageFromOthers := <-clientMailbox:
 			stream.Send(&messageFromOthers)
 		}
@@ -226,7 +220,8 @@ func (s *chatServer) TransferMessage(stream pb.Chat_TransferMessageServer) error
 //Logout
 func (s *chatServer) LogoutCred(ctx context.Context, logout *pb.Logout) (*empty.Empty, error) {
 	removeListener(logout.GetUsername())
-	return nil, nil
+	fmt.Println(logout.GetUsername() + " has logged out.")
+	return &empty.Empty{}, nil
 }
 
 //Serve : Serves at specific address

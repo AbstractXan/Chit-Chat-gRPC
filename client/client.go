@@ -59,7 +59,7 @@ func Connect(address string) error {
 	}
 
 	//Get Login Thingy
-	LoginStats, err := client.LoginCred(context.Background(), &pb.Login{Username: clientName, Password: clientPass, Mode: 1})
+	LoginStats, err := client.LoginCred(context.Background(), &pb.Login{Username: clientName, Password: clientPass, Mode: 1, Macaddress: getMacAddr()})
 	if err != nil {
 		return err
 	}
@@ -117,6 +117,15 @@ func Connect(address string) error {
 	fmt.Printf("%s> %s | Group %d\n", mess.Sender, mess.Text, mess.Group)
 	groupid = mess.Group //Updated GroupID
 
+	//Get Prev Group Chat
+	gmess, err := stream.Recv()
+	if err != nil {
+		return err
+	}
+
+	//Print Prev Group Chat
+	fmt.Println(gmess.Text)
+
 	//Make buffered mailbox recieve message from server
 	mailBox := make(chan pb.Message, 100)
 	go receiveMessages(stream, mailBox)
@@ -132,6 +141,10 @@ func Connect(address string) error {
 
 		//If send channel is active, send to server
 		case toSend := <-sendQ:
+			if toSend.GetText() == "quit" {
+				return nil
+			}
+
 			stream.Send(&toSend)
 
 		//If mailbox has something, print.

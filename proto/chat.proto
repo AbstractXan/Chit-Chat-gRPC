@@ -8,7 +8,8 @@ import "google/protobuf/empty.proto";
 message Login{
     string username = 1;
     string password = 2;
-    int32 mode = 3; 
+    int32 mode = 3;
+    string macaddress = 4; 
     //1 for request 
     //2 for deny 
     //3 for already online 

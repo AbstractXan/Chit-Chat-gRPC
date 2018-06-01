@@ -1,11 +1,9 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"strconv"
 	"sync"
@@ -21,12 +19,15 @@ import (
 var usersLock = &sync.Mutex{}
 var usersMap = make(map[string]chan pb.Message, 100)
 
+//Stores Mac Address
+var usersMAC = make(map[string]string, 100)
 var groupLock = &sync.Mutex{}
 var groups []group
 
 type group struct {
-	name     string
-	channels []chan pb.Message
+	name          string
+	channels      []chan pb.Message
+	messageMemory string
 }
 
 // UsersDB has username and password
@@ -46,7 +47,7 @@ type chatServer struct {
 }
 
 func newGroup(gname string) {
-	g := group{name: gname}
+	g := group{name: gname, messageMemory: ""}
 	groups = append(groups, g)
 }
 
@@ -100,6 +101,7 @@ func sendGroup(stream pb.Chat_TransferMessageServer) int32 {
 }
 
 func newChatServer() *chatServer {
+	newGroup("default")
 	return &chatServer{}
 }
 
@@ -127,10 +129,7 @@ func broadcast(sender string, msg pb.Message) {
 	usersLock.Lock()
 	defer usersLock.Unlock()
 
-	content, _ := ioutil.ReadFile(groups[msg.GetGroup()].name + ".txt")
-	s := [][]byte{content, []byte(sender + ">" + msg.GetText())}
-	out := bytes.Join(s, []byte(""))
-	ioutil.WriteFile(groups[msg.GetGroup()].name+".txt", out, 0666)
+	groups[msg.GetGroup()].messageMemory = groups[msg.GetGroup()].messageMemory + sender + ">" + msg.GetText()
 	for _, q := range groups[msg.GetGroup()].channels {
 		if q != usersMap[sender] {
 			q <- msg
@@ -208,6 +207,9 @@ func (s *chatServer) TransferMessage(stream pb.Chat_TransferMessageServer) error
 		Sender: "[SERVER]", Text: "You have joined " + groups[groupID].name, Group: groupID,
 	})
 
+	//Send Group's Previous chat
+	stream.Send(&pb.Message{Sender: "[SERVER]", Text: groups[groupID].messageMemory, Group: groupID})
+
 	//Starts chat
 	go listenToClient(stream, clientMessages)
 
@@ -241,6 +243,5 @@ func Serve() error {
 }
 
 func main() {
-	newGroup("default")
 	Serve()
 }

@@ -6,6 +6,7 @@ package proto
 import proto "github.com/golang/protobuf/proto"
 import fmt "fmt"
 import math "math"
+import empty "github.com/golang/protobuf/ptypes/empty"
 
 import (
 	context "golang.org/x/net/context"
@@ -24,10 +25,66 @@ var _ = math.Inf
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
 // Types
+type Login struct {
+	Username             string   `protobuf:"bytes,1,opt,name=username" json:"username,omitempty"`
+	Password             string   `protobuf:"bytes,2,opt,name=password" json:"password,omitempty"`
+	Mode                 int32    `protobuf:"varint,3,opt,name=mode" json:"mode,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *Login) Reset()         { *m = Login{} }
+func (m *Login) String() string { return proto.CompactTextString(m) }
+func (*Login) ProtoMessage()    {}
+func (*Login) Descriptor() ([]byte, []int) {
+	return fileDescriptor_chat_770b690a946327c6, []int{0}
+}
+func (m *Login) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Login.Unmarshal(m, b)
+}
+func (m *Login) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Login.Marshal(b, m, deterministic)
+}
+func (dst *Login) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Login.Merge(dst, src)
+}
+func (m *Login) XXX_Size() int {
+	return xxx_messageInfo_Login.Size(m)
+}
+func (m *Login) XXX_DiscardUnknown() {
+	xxx_messageInfo_Login.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Login proto.InternalMessageInfo
+
+func (m *Login) GetUsername() string {
+	if m != nil {
+		return m.Username
+	}
+	return ""
+}
+
+func (m *Login) GetPassword() string {
+	if m != nil {
+		return m.Password
+	}
+	return ""
+}
+
+func (m *Login) GetMode() int32 {
+	if m != nil {
+		return m.Mode
+	}
+	return 0
+}
+
 type Message struct {
 	Sender               string   `protobuf:"bytes,1,opt,name=sender" json:"sender,omitempty"`
 	Text                 string   `protobuf:"bytes,2,opt,name=text" json:"text,omitempty"`
 	Register             bool     `protobuf:"varint,3,opt,name=register" json:"register,omitempty"`
+	Group                int32    `protobuf:"varint,4,opt,name=group" json:"group,omitempty"`
+	Groupname            string   `protobuf:"bytes,5,opt,name=groupname" json:"groupname,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -37,7 +94,7 @@ func (m *Message) Reset()         { *m = Message{} }
 func (m *Message) String() string { return proto.CompactTextString(m) }
 func (*Message) ProtoMessage()    {}
 func (*Message) Descriptor() ([]byte, []int) {
-	return fileDescriptor_chat_2f8427a3dcf6b20e, []int{0}
+	return fileDescriptor_chat_770b690a946327c6, []int{1}
 }
 func (m *Message) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Message.Unmarshal(m, b)
@@ -78,8 +135,62 @@ func (m *Message) GetRegister() bool {
 	return false
 }
 
+func (m *Message) GetGroup() int32 {
+	if m != nil {
+		return m.Group
+	}
+	return 0
+}
+
+func (m *Message) GetGroupname() string {
+	if m != nil {
+		return m.Groupname
+	}
+	return ""
+}
+
+type Logout struct {
+	Username             string   `protobuf:"bytes,1,opt,name=username" json:"username,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *Logout) Reset()         { *m = Logout{} }
+func (m *Logout) String() string { return proto.CompactTextString(m) }
+func (*Logout) ProtoMessage()    {}
+func (*Logout) Descriptor() ([]byte, []int) {
+	return fileDescriptor_chat_770b690a946327c6, []int{2}
+}
+func (m *Logout) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Logout.Unmarshal(m, b)
+}
+func (m *Logout) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Logout.Marshal(b, m, deterministic)
+}
+func (dst *Logout) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Logout.Merge(dst, src)
+}
+func (m *Logout) XXX_Size() int {
+	return xxx_messageInfo_Logout.Size(m)
+}
+func (m *Logout) XXX_DiscardUnknown() {
+	xxx_messageInfo_Logout.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Logout proto.InternalMessageInfo
+
+func (m *Logout) GetUsername() string {
+	if m != nil {
+		return m.Username
+	}
+	return ""
+}
+
 func init() {
+	proto.RegisterType((*Login)(nil), "proto.Login")
 	proto.RegisterType((*Message)(nil), "proto.Message")
+	proto.RegisterType((*Logout)(nil), "proto.Logout")
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -94,7 +205,9 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type ChatClient interface {
+	LoginCred(ctx context.Context, in *Login, opts ...grpc.CallOption) (*Login, error)
 	TransferMessage(ctx context.Context, opts ...grpc.CallOption) (Chat_TransferMessageClient, error)
+	LogoutCred(ctx context.Context, in *Logout, opts ...grpc.CallOption) (*empty.Empty, error)
 }
 
 type chatClient struct {
@@ -103,6 +216,15 @@ type chatClient struct {
 
 func NewChatClient(cc *grpc.ClientConn) ChatClient {
 	return &chatClient{cc}
+}
+
+func (c *chatClient) LoginCred(ctx context.Context, in *Login, opts ...grpc.CallOption) (*Login, error) {
+	out := new(Login)
+	err := c.cc.Invoke(ctx, "/proto.Chat/LoginCred", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *chatClient) TransferMessage(ctx context.Context, opts ...grpc.CallOption) (Chat_TransferMessageClient, error) {
@@ -136,13 +258,42 @@ func (x *chatTransferMessageClient) Recv() (*Message, error) {
 	return m, nil
 }
 
+func (c *chatClient) LogoutCred(ctx context.Context, in *Logout, opts ...grpc.CallOption) (*empty.Empty, error) {
+	out := new(empty.Empty)
+	err := c.cc.Invoke(ctx, "/proto.Chat/LogoutCred", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ChatServer is the server API for Chat service.
 type ChatServer interface {
+	LoginCred(context.Context, *Login) (*Login, error)
 	TransferMessage(Chat_TransferMessageServer) error
+	LogoutCred(context.Context, *Logout) (*empty.Empty, error)
 }
 
 func RegisterChatServer(s *grpc.Server, srv ChatServer) {
 	s.RegisterService(&_Chat_serviceDesc, srv)
+}
+
+func _Chat_LoginCred_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Login)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChatServer).LoginCred(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.Chat/LoginCred",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChatServer).LoginCred(ctx, req.(*Login))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _Chat_TransferMessage_Handler(srv interface{}, stream grpc.ServerStream) error {
@@ -171,10 +322,37 @@ func (x *chatTransferMessageServer) Recv() (*Message, error) {
 	return m, nil
 }
 
+func _Chat_LogoutCred_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Logout)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChatServer).LogoutCred(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.Chat/LogoutCred",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChatServer).LogoutCred(ctx, req.(*Logout))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var _Chat_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "proto.Chat",
 	HandlerType: (*ChatServer)(nil),
-	Methods:     []grpc.MethodDesc{},
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "LoginCred",
+			Handler:    _Chat_LoginCred_Handler,
+		},
+		{
+			MethodName: "LogoutCred",
+			Handler:    _Chat_LogoutCred_Handler,
+		},
+	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "TransferMessage",
@@ -186,18 +364,27 @@ var _Chat_serviceDesc = grpc.ServiceDesc{
 	Metadata: "proto/chat.proto",
 }
 
-func init() { proto.RegisterFile("proto/chat.proto", fileDescriptor_chat_2f8427a3dcf6b20e) }
+func init() { proto.RegisterFile("proto/chat.proto", fileDescriptor_chat_770b690a946327c6) }
 
-var fileDescriptor_chat_2f8427a3dcf6b20e = []byte{
-	// 148 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x12, 0x28, 0x28, 0xca, 0x2f,
-	0xc9, 0xd7, 0x4f, 0xce, 0x48, 0x2c, 0xd1, 0x03, 0x33, 0x85, 0x58, 0xc1, 0x94, 0x52, 0x20, 0x17,
-	0xbb, 0x6f, 0x6a, 0x71, 0x71, 0x62, 0x7a, 0xaa, 0x90, 0x18, 0x17, 0x5b, 0x71, 0x6a, 0x5e, 0x4a,
-	0x6a, 0x91, 0x04, 0xa3, 0x02, 0xa3, 0x06, 0x67, 0x10, 0x94, 0x27, 0x24, 0xc4, 0xc5, 0x52, 0x92,
-	0x5a, 0x51, 0x22, 0xc1, 0x04, 0x16, 0x05, 0xb3, 0x85, 0xa4, 0xb8, 0x38, 0x8a, 0x52, 0xd3, 0x33,
-	0x8b, 0x4b, 0x52, 0x8b, 0x24, 0x98, 0x15, 0x18, 0x35, 0x38, 0x82, 0xe0, 0x7c, 0x23, 0x7b, 0x2e,
-	0x16, 0xe7, 0x8c, 0xc4, 0x12, 0x21, 0x73, 0x2e, 0xfe, 0x90, 0xa2, 0xc4, 0xbc, 0xe2, 0xb4, 0xd4,
-	0x22, 0x98, 0x15, 0x7c, 0x10, 0xcb, 0xf5, 0xa0, 0x7c, 0x29, 0x34, 0xbe, 0x12, 0x83, 0x06, 0xa3,
-	0x01, 0x63, 0x12, 0x1b, 0x58, 0xd0, 0x18, 0x10, 0x00, 0x00, 0xff, 0xff, 0xcd, 0x7d, 0xc2, 0x7e,
-	0xb5, 0x00, 0x00, 0x00,
+var fileDescriptor_chat_770b690a946327c6 = []byte{
+	// 297 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x7c, 0x91, 0x4d, 0x4e, 0xf3, 0x30,
+	0x10, 0x86, 0xeb, 0xef, 0x4b, 0x42, 0x33, 0xe2, 0x4f, 0x16, 0xaa, 0xa2, 0xc0, 0xa2, 0xb2, 0x58,
+	0x84, 0x4d, 0x82, 0x40, 0x88, 0x03, 0x54, 0xec, 0xca, 0x26, 0x70, 0x01, 0x97, 0x4c, 0xdd, 0x4a,
+	0x24, 0x8e, 0x6c, 0x47, 0xc0, 0x01, 0x38, 0x08, 0x37, 0x45, 0x19, 0x27, 0xad, 0x60, 0xc1, 0x2a,
+	0xef, 0x33, 0x9e, 0xbc, 0xf3, 0x07, 0xa7, 0xad, 0xd1, 0x4e, 0x17, 0x2f, 0x1b, 0xe9, 0x72, 0x92,
+	0x3c, 0xa4, 0x4f, 0x7a, 0xae, 0xb4, 0x56, 0xaf, 0x58, 0x10, 0xad, 0xba, 0x75, 0x81, 0x75, 0xeb,
+	0x3e, 0x7c, 0x8e, 0x78, 0x82, 0x70, 0xa9, 0xd5, 0xb6, 0xe1, 0x29, 0x4c, 0x3b, 0x8b, 0xa6, 0x91,
+	0x35, 0x26, 0x6c, 0xce, 0xb2, 0xb8, 0xdc, 0x71, 0xff, 0xd6, 0x4a, 0x6b, 0xdf, 0xb4, 0xa9, 0x92,
+	0x7f, 0xfe, 0x6d, 0x64, 0xce, 0x21, 0xa8, 0x75, 0x85, 0xc9, 0xff, 0x39, 0xcb, 0xc2, 0x92, 0xb4,
+	0xf8, 0x64, 0x70, 0xf0, 0x88, 0xd6, 0x4a, 0x85, 0x7c, 0x06, 0x91, 0xc5, 0xa6, 0x42, 0x33, 0xb8,
+	0x0e, 0xd4, 0xff, 0xe7, 0xf0, 0xdd, 0x0d, 0x7e, 0xa4, 0xfb, 0x3a, 0x06, 0xd5, 0xd6, 0x3a, 0x34,
+	0xe4, 0x37, 0x2d, 0x77, 0xcc, 0xcf, 0x20, 0x54, 0x46, 0x77, 0x6d, 0x12, 0x50, 0x21, 0x0f, 0xfc,
+	0x02, 0x62, 0x12, 0xd4, 0x76, 0x48, 0x56, 0xfb, 0x80, 0xb8, 0x84, 0x68, 0xa9, 0x95, 0xee, 0xdc,
+	0x5f, 0xd3, 0xdd, 0x7c, 0x31, 0x08, 0x16, 0x1b, 0xe9, 0xf8, 0x15, 0xc4, 0xb4, 0x8b, 0x85, 0xc1,
+	0x8a, 0x1f, 0xfa, 0x05, 0xe5, 0x14, 0x49, 0x7f, 0x90, 0x98, 0xf0, 0x7b, 0x38, 0x79, 0x36, 0xb2,
+	0xb1, 0x6b, 0x34, 0xe3, 0xa0, 0xc7, 0x43, 0xca, 0xc0, 0xe9, 0x2f, 0x16, 0x93, 0x8c, 0x5d, 0x33,
+	0x7e, 0x07, 0xe0, 0x5b, 0xa2, 0x22, 0x47, 0x7b, 0x5b, 0xdd, 0xb9, 0x74, 0x96, 0xfb, 0x53, 0xe5,
+	0xe3, 0xa9, 0xf2, 0x87, 0xfe, 0x54, 0x62, 0xb2, 0x8a, 0x28, 0x72, 0xfb, 0x1d, 0x00, 0x00, 0xff,
+	0xff, 0x95, 0xdc, 0xb4, 0x69, 0xe5, 0x01, 0x00, 0x00,
 }

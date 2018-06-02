@@ -16,11 +16,11 @@ import (
 	pb "grpcgittest/proto"
 )
 
-func listenToClient(sendQ chan pb.Message, reader *bufio.Reader, name string, groupnum int32) {
+func listenToClient(sendQ chan pb.Message, reader *bufio.Reader, name string, groupnum int32, id string) {
 	defer close(sendQ)
 	for {
 		msg, _ := reader.ReadString('\n')
-		sendQ <- pb.Message{Sender: name, Text: msg, Group: groupnum}
+		sendQ <- pb.Message{Sender: name, Text: msg, Group: groupnum, LoginID: id}
 
 		if strings.Contains(msg, "quit") {
 			fmt.Println("Closing Client Sender.")
@@ -72,13 +72,9 @@ func Connect(address string) error {
 	}
 
 	//Get Login Thingy
-	LoginStats, err := client.LoginCred(context.Background(), &pb.Login{Username: clientName, Password: clientPass, Mode: 1})
+	LoginStats, err := client.LoginCred(context.Background(), &pb.Login{Username: clientName, Password: clientPass})
 	if err != nil {
 		return err
-	}
-
-	if LoginStats.Mode == 2 {
-		fmt.Println("Wrong Credentials")
 	}
 
 	switch LoginStats.Mode {
@@ -90,6 +86,8 @@ func Connect(address string) error {
 		return err
 	case 4:
 		fmt.Println("Login successful")
+	case 5:
+		fmt.Println("Welcome.")
 	default:
 		err = errors.New("??? ERROR reading loginstats")
 		return err
@@ -101,8 +99,11 @@ func Connect(address string) error {
 		return err
 	}
 
+	//GET PrivateID
+	id := LoginStats.ID
+
 	//Send username. Client name
-	stream.Send(&pb.Message{Sender: clientName, Register: true})
+	stream.Send(&pb.Message{Sender: clientName})
 
 	//Getgroupmessage
 	groupmessage, err := stream.Recv()
@@ -140,12 +141,12 @@ func Connect(address string) error {
 	fmt.Println(gmess.Text)
 
 	//Make buffered mailbox recieve message from server
-	mailBox := make(chan pb.Message, 100)
+	mailBox := make(chan pb.Message)
 	go receiveMessages(stream, mailBox)
 
 	//Make send queue buffered message
-	sendQ := make(chan pb.Message, 100)
-	go listenToClient(sendQ, reader, clientName, groupid)
+	sendQ := make(chan pb.Message)
+	go listenToClient(sendQ, reader, clientName, groupid, id)
 
 	//Forever
 	for {
@@ -162,11 +163,9 @@ func Connect(address string) error {
 				client.LogoutCred(context.Background(), &pb.Logout{Username: clientName})
 				return nil
 			}
-			fmt.Printf("Group %d | %s  > %s", received.Group, received.Sender, received.Text)
+			fmt.Printf("%s> %s", received.Sender, received.Text)
 		}
 	}
-
-	return nil
 }
 
 func main() {

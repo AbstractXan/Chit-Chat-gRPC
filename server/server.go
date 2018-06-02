@@ -19,7 +19,7 @@ import (
 //GLOBALS:
 var usersLock = &sync.Mutex{}
 var usersMap = make(map[string]chan pb.Message, 100)
-
+var usersID = make(map[string]string)
 var groupLock = &sync.Mutex{}
 var groups []group
 
@@ -47,7 +47,7 @@ func addToGroup(gid int32, c chan pb.Message, gname string) int32 {
 	//fmt.Println(gid)
 	if num, ok := groupExists(gid); ok == false {
 		newGroup(gname)
-		fmt.Println("Created new group")
+		fmt.Println("Created new group :" + gname)
 		gid = num
 	}
 	groups[gid].channels = append(groups[gid].channels, c)
@@ -113,11 +113,19 @@ func hasListener(name string) bool {
 	return exists
 }
 
+func hasUser(name string) bool {
+	groupLock.Lock()
+	defer groupLock.Unlock()
+	_, exists := UsersDB[name]
+	return exists
+}
+
 //BROADCASTS messages to respective mailboxes belonging to the same group
 func broadcast(sender string, msg pb.Message) {
 	usersLock.Lock()
 	defer usersLock.Unlock()
 
+	//Update Group Chat Stored
 	groups[msg.GetGroup()].messageMemory = groups[msg.GetGroup()].messageMemory + sender + ">" + msg.GetText()
 	for _, q := range groups[msg.GetGroup()].channels {
 		if q != usersMap[sender] {
@@ -138,32 +146,55 @@ func listenToClient(stream pb.Chat_TransferMessageServer, messages chan<- pb.Mes
 			//
 			break
 		}
+		//Handling logout error
+		if cmp := strings.Compare(msg.GetText(), ""); cmp <= 0 {
+			continue
+		}
 		messages <- *msg
 	}
 }
 
+// newLoginID
+func newLoginID(login *pb.Login) string {
+	s := login.GetUsername() + login.GetPassword()
+	usersID[login.GetUsername()] = s
+	return s
+}
+
 //Send Login Credentials
-func (s *chatServer) LoginCred(ctx context.Context, login *pb.Login) (*pb.Login, error) {
+func (s *chatServer) LoginCred(ctx context.Context, login *pb.Login) (*pb.LoginResponse, error) {
 
 	//Check if user present
 	if pass, ok := UsersDB[login.GetUsername()]; ok {
 		if pass == login.GetPassword() {
 
 			//Has connection?
-			if hasListener(login.GetUsername()) {
-				return &pb.Login{Mode: 3}, nil
+			if hasUser(login.GetUsername()) {
+
+				//Online
+				if hasListener(login.GetUsername()) {
+					fmt.Println(login.GetUsername() + " : Mode 3 : Already Online")
+					return &pb.LoginResponse{Mode: 3}, nil
+				}
+
+				//No listener but user exists, allow
+				fmt.Println(login.GetUsername() + " : Mode 5 : Relogged in")
+				return &pb.LoginResponse{Mode: 5, ID: newLoginID(login)}, nil
 			}
 			//No previous connection, accept
-			return &pb.Login{Mode: 4}, nil
+			fmt.Println(login.GetUsername() + " : Mode 4 : Accepted")
+			return &pb.LoginResponse{Mode: 4}, nil
 		}
 
 		//Denied Login
-		return &pb.Login{Mode: 2}, nil
+		fmt.Println(login.GetUsername() + " : Mode 2 : Denied Login")
+		return &pb.LoginResponse{Mode: 2}, nil
 	}
 
 	//Create new user credentials
 	UsersDB[login.GetUsername()] = login.GetPassword()
-	return &pb.Login{Mode: 4}, nil
+	fmt.Println(login.GetUsername() + " : Mode 4 : Accepted")
+	return &pb.LoginResponse{Mode: 4, ID: newLoginID(login)}, nil
 
 }
 
@@ -175,16 +206,15 @@ func (s *chatServer) TransferMessage(stream pb.Chat_TransferMessageServer) error
 	clientName := InMessage.GetSender()
 
 	//Make Client Buffer Mailbox
-	clientMailbox := make(chan pb.Message, 100)
-
+	clientMailbox := make(chan pb.Message)
 	if err != nil {
 		return err
 	}
 
-	//add Listener for client Name. (Setup Mailbox)
+	//Assign mailbox to userZZZz (Setup Mailbox)
 	addListener(clientName, clientMailbox)
 	//Create a listener to client
-	clientMessages := make(chan pb.Message, 100)
+	clientMessages := make(chan pb.Message)
 
 	//GetGroupNUmber
 	groupID := sendGroup(stream)
@@ -208,7 +238,9 @@ func (s *chatServer) TransferMessage(stream pb.Chat_TransferMessageServer) error
 		case messageFromClient := <-clientMessages:
 			if strings.Contains(messageFromClient.GetText(), "quit") {
 				stream.Send(&pb.Message{Sender: "server", Text: "quit"})
-			} else {
+
+				//Check if valid login ID
+			} else if messageFromClient.GetLoginID() == usersID[messageFromClient.GetSender()] {
 				broadcast(clientName, messageFromClient)
 			}
 		case messageFromOthers := <-clientMailbox:

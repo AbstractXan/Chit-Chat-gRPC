@@ -10,15 +10,17 @@ go get -u google.golang.org/grpc
 
 ### Run server and clients:
 
+Run instances from ./builds/
+
+OR
+
 #### Server
 ```
-$ cd $GOPATH/src/Chit-Chat-gRPC/
 $ go run ./server/server.go
 ```
 
 #### Client
 ```
-$ cd $GOPATH/src/Chit-Chat-gRPC/
 $ go run ./client/client.go
 ```
 ### Features:

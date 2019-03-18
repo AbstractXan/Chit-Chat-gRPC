@@ -4,6 +4,7 @@ Spin up servers and let your clients join in various chat-rooms.
 
 ### Setup
 go get -u github.com/golang/protobuf/protoc-gen-go
+
 go get -u google.golang.org/grpc
 
 

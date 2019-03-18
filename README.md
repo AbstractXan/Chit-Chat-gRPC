@@ -1,7 +1,9 @@
 ## Chit-Chat-gRPC by AbstractXan
 
 ### Setup
- Store `Chit-Chat-gRPC` folder in `$GOPATH/src/`
+go get -u github.com/golang/protobuf/protoc-gen-go
+go get -u google.golang.org/grpc
+
 
 ### Run server and clients:
 

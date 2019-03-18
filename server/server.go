@@ -13,7 +13,7 @@ import (
 
 	"google.golang.org/grpc"
 
-	pb "grpcgittest/proto"
+	pb "../proto"
 )
 
 //GLOBALS:
@@ -258,7 +258,7 @@ func (s *chatServer) LogoutCred(ctx context.Context, logout *pb.Logout) (*empty.
 
 //Serve : Serves at specific address
 func Serve() error {
-
+    println("Your ChitChat server is up!")
 	lis, err := net.Listen("tcp", ":10000")
 	if err != nil {
 		return err

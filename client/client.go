@@ -13,7 +13,7 @@ import (
 
 	"golang.org/x/net/context"
 
-	pb "grpcgittest/proto"
+	pb "../proto"
 )
 
 func listenToClient(sendQ chan pb.Message, reader *bufio.Reader, name string, groupnum int32, id string) {
@@ -169,7 +169,13 @@ func Connect(address string) error {
 }
 
 func main() {
-	err := Connect("127.0.0.1:10000")
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Println("Enter Server IP")
+	ip, _ := reader.ReadString('\n')
+	ip = strings.TrimSpace(ip)
+	
+	println("Connecting to : "+ip+" ...")
+	err := Connect(ip+":10000")
 	if err != nil {
 		log.Println(err)
 	}

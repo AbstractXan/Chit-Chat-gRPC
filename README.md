@@ -1,4 +1,4 @@
-## Chit-Chat-gRPC by AbstractXan
+## gRPC-Chat by AbstractXan
 gRPC and terminal based chatting over same local network.
 Spin up servers and let your clients join in various chat-rooms.
 
